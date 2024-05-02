@@ -1,0 +1,41 @@
+version: '3.8'
+
+services:
+  backend:
+    build: ../backend
+    ports:
+      - 8080:80
+    volumes:
+      - "../backend:/backend"
+    depends_on:
+      - db
+  frontend:
+    build: ../frontend
+    ports:
+      - "5173:5173"
+    volumes:
+      - ../frontend:/app
+  db:
+    image: postgres
+    volumes:
+      - '../db/data:/var/lib/postgresql/data'
+    ports:
+      - 5432:5432
+    environment:
+      - POSTGRES_PASSWORD=Reflectometer
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "pg_isready",
+          "-d",
+          "postgres",
+          "-h",
+          "localhost",
+          "-p 5432",
+          "-U postgres"
+        ]
+      interval: 10s
+      timeout: 30s
+      retries: 5
+      start_period: 30s
