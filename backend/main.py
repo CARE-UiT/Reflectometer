@@ -8,18 +8,12 @@ from fastapi.security import OAuth2PasswordRequestForm
 from typing import Annotated
 import auth
 from datetime import timedelta
-FILE_STORAGE_PATH = "/files/"
-
+from environment import CORS_ORIGIN, DEV
 app = FastAPI()
-
-origins = [
-    'http://localhost:5173',
-    'http://localhost:4173',
-]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins= CORS_ORIGIN if DEV else [],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

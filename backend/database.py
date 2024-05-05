@@ -1,8 +1,8 @@
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
-
-SQLALCHEMY_DATABASE_URL = 'postgresql+psycopg://postgres:Reflectometer@db:5432'
+from environment import DB_HOST, DB_PORT
+SQLALCHEMY_DATABASE_URL = f'postgresql+psycopg://postgres:Reflectometer@{DB_HOST}:{DB_PORT}'
 
 engine = create_engine(SQLALCHEMY_DATABASE_URL, echo=True)
 
