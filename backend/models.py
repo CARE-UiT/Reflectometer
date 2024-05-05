@@ -37,6 +37,8 @@ class Response(Base):
     consequences = Column(String, nullable=True) # Where there any consequences
 
     reflectometer = Column(Integer, ForeignKey("reflectometers.id"), nullable=False)
+    curve = Column(Integer, ForeignKey("curves.id"), nullable=False)
+
 
 class Curve(Base):
     __tablename__="curves"
@@ -45,4 +47,6 @@ class Curve(Base):
     data = Column(LargeBinary, nullable=False) # Pickled list of curve data
 
     reflectometer = Column(Integer, ForeignKey("reflectometers.id"), nullable=False)
+    responses = relationship('Response')
+
     
