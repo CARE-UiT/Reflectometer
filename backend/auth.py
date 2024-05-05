@@ -15,7 +15,7 @@ ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 2*60
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/token")
 
 def verify_password(plain_password, hashed_password, salt):
     return pwd_context.verify(salt+plain_password, hashed_password)
@@ -57,13 +57,13 @@ async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)], db: Se
     )
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        username: str = payload.get("sub")
-        if username is None:
+        user_name: str = payload.get("sub")
+        if user_name is None:
             raise credentials_exception
-        token_data = schema.TokenData(username=username)
+        token_data = schema.TokenData(user_name=user_name)
     except JWTError:
         raise credentials_exception
-    user = get_user(token_data.username, db)
+    user = get_user(token_data.user_name, db)
     if user is None:
         raise credentials_exception
     return user
