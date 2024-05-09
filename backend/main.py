@@ -1,14 +1,17 @@
 import os
 from fastapi import FastAPI, HTTPException, Depends, status, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from database import engine, get_db, Base
+from database import engine, get_db
 from sqlalchemy.orm import Session
 import models, schema
 from fastapi.security import OAuth2PasswordRequestForm
-from typing import Annotated
+from typing import Annotated, List, Optional
 import auth
 from datetime import timedelta
 from environment import CORS_ORIGIN, DEV
+import crud
+
+
 app = FastAPI()
 
 app.add_middleware(
@@ -45,3 +48,32 @@ async def get_current_user(
     current_user: Annotated[schema.User, Depends(auth.get_current_user)]
 ):
     return current_user
+
+
+@app.post("/api/reflectometer", tags=["Reflectometer"])
+async def create_reflectometer(
+    reflectometer: schema.Reflectometer,
+    current_user: Annotated[schema.User, Depends(auth.get_current_user)],
+    db: Session = Depends(get_db)
+) -> schema.Reflectometer | None:
+    return crud.create_reflectometer(reflectometer, current_user, db)
+
+
+@app.get("/api/reflectometer", tags=["Reflectometer"])
+async def get_reflectometer(
+    current_user: Annotated[schema.User, Depends(auth.get_current_user)],
+    id: Annotated[int | None, "ID of reflectometer"] = None,
+    db: Session = Depends(get_db),
+) -> List[schema.Reflectometer]:
+    res = crud.get_reflectometer(id, current_user, db)
+    if res == None:
+        raise HTTPException(403, detail="User not found")
+    return res
+
+@app.delete("/api/reflectometer", tags=["Reflectometer"])
+async def delete_reflectometer(
+    current_user: Annotated[schema.User, Depends(auth.get_current_user)],
+    id: Annotated[int, "ID of reflectometer"],
+    db: Session = Depends(get_db),
+):
+    crud.delete_reflectometer(id, current_user, db)
