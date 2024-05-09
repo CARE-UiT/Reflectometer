@@ -18,12 +18,23 @@ class Reflectometer(Base):
     id = Column(Integer, primary_key=True , nullable=False, autoincrement=True)
     name = Column(String, nullable=False)
     password_hash = Column(String, nullable=True)
+    salt = Column(String, nullable=True)
     
     owner = Column(Integer, ForeignKey("users.id"), nullable=False)
 
     responses = relationship('Response')
-    responses = relationship('Curve')
+    curves = relationship('Curve')
+    participants = relationship('Participant')
 
+class Participant(Base):
+    __tablename__="participants"
+    id = Column(Integer, primary_key=True , nullable=False, autoincrement=True)
+    name = Column(String, nullable=False)
+    
+    reflectometer = Column(Integer, ForeignKey("reflectometers.id"), nullable=False)
+
+    curves = relationship('Curve')
+    responses = relationship('Response')
 
 class Response(Base):
     __tablename__="responses"
@@ -37,6 +48,7 @@ class Response(Base):
     consequences = Column(String, nullable=True) # Where there any consequences
 
     reflectometer = Column(Integer, ForeignKey("reflectometers.id"), nullable=False)
+    participant = Column(Integer, ForeignKey("participant.id"), nullable=False)
     curve = Column(Integer, ForeignKey("curves.id"), nullable=False)
 
 
@@ -47,6 +59,8 @@ class Curve(Base):
     data = Column(LargeBinary, nullable=False) # Pickled list of curve data
 
     reflectometer = Column(Integer, ForeignKey("reflectometers.id"), nullable=False)
+    participant = Column(Integer, ForeignKey("participant.id"), nullable=False)
+    
     responses = relationship('Response')
 
     
