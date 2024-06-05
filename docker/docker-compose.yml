@@ -35,7 +35,7 @@ services:
           "-d",
           "postgres",
           "-h",
-          "localhost",
+          "db",
           "-p ${DB_INTERNAL_PORT}",
           "-U postgres"
         ]

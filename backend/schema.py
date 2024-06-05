@@ -24,6 +24,8 @@ class Participant(BaseModel):
     id: int | None = None
     name: str
 
+    reflectometer: int
+
 class Curve(BaseModel):
     data: List[int]
     

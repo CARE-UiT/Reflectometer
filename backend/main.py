@@ -77,3 +77,30 @@ async def delete_reflectometer(
     db: Session = Depends(get_db),
 ):
     crud.delete_reflectometer(id, current_user, db)
+
+
+@app.post("/api/participant", tags=["Participant"])
+async def create_participant(
+    participant: schema.Participant,
+    db: Session = Depends(get_db)
+) -> schema.Participant | None:
+    return crud.create_participant(participant, db)
+
+@app.get("/api/participant", tags=["Participant"])
+async def get_participant(
+    id: int,
+    db: Session = Depends(get_db),
+) -> schema.Participant:
+    res = crud.get_participant(id, db)
+    if res == None:
+        raise HTTPException(404, detail="Participant not found")
+    return res
+
+@app.delete("/api/participant", tags=["Participant"])
+async def delete_participant(
+    id: Annotated[int, "ID of participant"],
+    db: Session = Depends(get_db),
+):
+    crud.delete_participant(id, db)
+
+

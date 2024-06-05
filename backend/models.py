@@ -1,5 +1,5 @@
 from database import Base
-from sqlalchemy import Column, Integer, LargeBinary, String, ForeignKey, Float, Boolean
+from sqlalchemy import Column, Integer, LargeBinary, String, ForeignKey
 from sqlalchemy.orm import relationship
 
 class User(Base):
@@ -11,19 +11,16 @@ class User(Base):
     password_hash = Column(String, nullable=False)
     salt = Column(String, nullable=False)
 
-    reflectometers = relationship('Reflectometer')
-
-class Reflectometer(Base):
-    __tablename__="reflectometers"
+class Course(Base):
+    __tablename__="courses"
     id = Column(Integer, primary_key=True , nullable=False, autoincrement=True)
     name = Column(String, nullable=False)
     password_hash = Column(String, nullable=True)
     salt = Column(String, nullable=True)
-    
+
     owner = Column(Integer, ForeignKey("users.id"), nullable=False)
 
-    responses = relationship('Response')
-    curves = relationship('Curve')
+    sessions = relationship('Session')
     participants = relationship('Participant')
 
 class Participant(Base):
@@ -31,10 +28,22 @@ class Participant(Base):
     id = Column(Integer, primary_key=True , nullable=False, autoincrement=True)
     name = Column(String, nullable=False)
     
-    reflectometer = Column(Integer, ForeignKey("reflectometers.id"), nullable=False)
+    course = Column(Integer, ForeignKey("courses.id"), nullable=False)
 
     curves = relationship('Curve')
     responses = relationship('Response')
+
+class Session(Base):
+    __tablename__="sessions"
+    id = Column(Integer, primary_key=True , nullable=False, autoincrement=True)
+    name = Column(String, nullable=False)
+    password_hash = Column(String, nullable=True)
+    salt = Column(String, nullable=True)
+    
+    course = Column(Integer, ForeignKey("courses.id"), nullable=False)
+
+    responses = relationship('Response')
+    curves = relationship('Curve')
 
 class Response(Base):
     __tablename__="responses"
@@ -47,10 +56,9 @@ class Response(Base):
     actions = Column(String, nullable=True) # What did you do
     consequences = Column(String, nullable=True) # Where there any consequences
 
-    reflectometer = Column(Integer, ForeignKey("reflectometers.id"), nullable=False)
-    participant = Column(Integer, ForeignKey("participant.id"), nullable=False)
+    session = Column(Integer, ForeignKey("sessions.id"), nullable=False)
+    participant = Column(Integer, ForeignKey("participants.id"), nullable=False)
     curve = Column(Integer, ForeignKey("curves.id"), nullable=False)
-
 
 class Curve(Base):
     __tablename__="curves"
@@ -58,8 +66,8 @@ class Curve(Base):
     id = Column(Integer, primary_key=True , nullable=False, autoincrement=True)
     data = Column(LargeBinary, nullable=False) # Pickled list of curve data
 
-    reflectometer = Column(Integer, ForeignKey("reflectometers.id"), nullable=False)
-    participant = Column(Integer, ForeignKey("participant.id"), nullable=False)
+    session = Column(Integer, ForeignKey("sessions.id"), nullable=False)
+    participant = Column(Integer, ForeignKey("participants.id"), nullable=False)
     
     responses = relationship('Response')
 
