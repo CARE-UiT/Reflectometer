@@ -1,13 +1,14 @@
 import React, { useState, useRef, useEffect, MouseEvent } from 'react';
 import ReactEcharts from 'echarts-for-react';
 import * as echarts from 'echarts';
+import { Button, ButtonGroup } from '@mui/material';
 
 interface DataPoint {
     x: number;
     y: number;
 }
 
-const POINTS_COUNT = 50;
+const POINTS_COUNT = 100;
 const WIDTH = 500;  // Width of the chart
 const HEIGHT = 500;  // Height of the chart
 
@@ -21,8 +22,9 @@ const initializeData = () => {
 };
 
 const DrawLineChart: React.FC = () => {
-    const [data, setData] = useState<DataPoint[]>(initializeData);
+    const [data, setData] = useState<DataPoint[]>(initializeData());
     const [isDrawing, setIsDrawing] = useState<boolean>(false);
+    const [mode, setMode] = useState<'draw' | 'select'>('draw');
     const chartRef = useRef<ReactEcharts>(null);
 
     useEffect(() => {
@@ -36,16 +38,26 @@ const DrawLineChart: React.FC = () => {
     }, []);
 
     const handleMouseDown = () => {
-        setIsDrawing(true);
+        if (mode === 'draw') {
+            setIsDrawing(true);
+        }
     };
 
     const handleMouseUp = () => {
-        setIsDrawing(false);
+        if (mode === 'draw') {
+            setIsDrawing(false);
+        }
     };
 
     const handleMouseMove = (e: MouseEvent<HTMLDivElement>) => {
-        if (isDrawing) {
+        if (mode === 'draw' && isDrawing) {
             updateDataPoint(e);
+        }
+    };
+
+    const handleClick = (e: MouseEvent<HTMLDivElement>) => {
+        if (mode === 'select') {
+            selectDataPoint(e);
         }
     };
 
@@ -77,6 +89,20 @@ const DrawLineChart: React.FC = () => {
         });
     };
 
+    const selectDataPoint = (e: MouseEvent<HTMLDivElement>) => {
+        const chart = chartRef.current?.getEchartsInstance();
+        if (!chart) return;
+
+        const pointInPixel = [e.clientX, e.clientY];
+        const pointInGrid = chart.convertFromPixel({ seriesIndex: 0 }, pointInPixel);
+
+        const x = pointInGrid[0];
+        const y = pointInGrid[1];
+
+        console.log(`Selected point: (${x}, ${y})`);
+        // Additional logic for selected key points can be added here
+    };
+
     const getOption = () => {
         return {
             xAxis: {
@@ -103,17 +129,24 @@ const DrawLineChart: React.FC = () => {
     };
 
     return (
-        <div
-            onMouseDown={handleMouseDown}
-            onMouseUp={handleMouseUp}
-            onMouseMove={handleMouseMove}
-            style={{ width: `${WIDTH}px`, height: `${HEIGHT}px`, border: '1px solid #ccc' }}
-        >
-            <ReactEcharts
-                ref={chartRef}
-                option={getOption()}
-                style={{ width: '100%', height: '100%' }}
-            />
+        <div>
+            <ButtonGroup variant="contained" aria-label="outlined primary button group">
+                <Button onClick={() => setMode('draw')} color={mode === 'draw' ? 'primary' : 'inherit'}>Draw</Button>
+                <Button onClick={() => setMode('select')} color={mode === 'select' ? 'primary' : 'inherit'}>Select</Button>
+            </ButtonGroup>
+            <div
+                onMouseDown={handleMouseDown}
+                onMouseUp={handleMouseUp}
+                onMouseMove={handleMouseMove}
+                onClick={handleClick}
+                style={{ width: `${WIDTH}px`, height: `${HEIGHT}px`, border: '1px solid #ccc' }}
+            >
+                <ReactEcharts
+                    ref={chartRef}
+                    option={getOption()}
+                    style={{ width: '100%', height: '100%' }}
+                />
+            </div>
         </div>
     );
 };
