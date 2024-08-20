@@ -1,22 +1,15 @@
 import os
-from fastapi import FastAPI, HTTPException, Depends, status, UploadFile
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from database import engine, get_db
-from sqlalchemy.orm import Session
-import models, schema
-from fastapi.security import OAuth2PasswordRequestForm
-from typing import Annotated, List, Optional
-import auth
-from datetime import timedelta
-from environment import CORS_ORIGIN, DEV
-import crud
-
+from database import engine
+import models
+from endpoints import auth, course, participant, session, curve, keymoment
 
 app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins= CORS_ORIGIN if DEV else [],
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -24,83 +17,12 @@ app.add_middleware(
 
 models.Base.metadata.create_all(bind=engine)
 
-@app.post("/api/token", tags=["Auth"])
-async def login(form_data: Annotated[OAuth2PasswordRequestForm, Depends()],db: Session = Depends(get_db)):
-    user = auth.authenticate_user(form_data.username, form_data.password, db)
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect username or password",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-    access_token_expires = timedelta(minutes=auth.ACCESS_TOKEN_EXPIRE_MINUTES)
-    access_token = auth.create_access_token(
-        data={"sub": user.user_name}, expires_delta=access_token_expires
-    )
-    return schema.Token(access_token=access_token, token_type="bearer")
-
-@app.post("/api/auth/new", tags=["Auth"])
-async def new_user(newPilot : schema.User, db: Session = Depends(get_db)):
-    return auth.create_new_user(newPilot,db)
-
-@app.get("/api/auth/current", tags=["Auth"])
-async def get_current_user(
-    current_user: Annotated[schema.User, Depends(auth.get_current_user)]
-):
-    return current_user
-
-
-@app.post("/api/reflectometer", tags=["Reflectometer"])
-async def create_reflectometer(
-    reflectometer: schema.Reflectometer,
-    current_user: Annotated[schema.User, Depends(auth.get_current_user)],
-    db: Session = Depends(get_db)
-) -> schema.Reflectometer | None:
-    return crud.create_reflectometer(reflectometer, current_user, db)
-
-
-@app.get("/api/reflectometer", tags=["Reflectometer"])
-async def get_reflectometer(
-    current_user: Annotated[schema.User, Depends(auth.get_current_user)],
-    id: Annotated[int | None, "ID of reflectometer"] = None,
-    db: Session = Depends(get_db),
-) -> List[schema.Reflectometer]:
-    res = crud.get_reflectometer(id, current_user, db)
-    if res == None:
-        raise HTTPException(403, detail="User not found")
-    return res
-
-@app.delete("/api/reflectometer", tags=["Reflectometer"])
-async def delete_reflectometer(
-    current_user: Annotated[schema.User, Depends(auth.get_current_user)],
-    id: Annotated[int, "ID of reflectometer"],
-    db: Session = Depends(get_db),
-):
-    crud.delete_reflectometer(id, current_user, db)
-
-
-@app.post("/api/participant", tags=["Participant"])
-async def create_participant(
-    participant: schema.Participant,
-    db: Session = Depends(get_db)
-) -> schema.Participant | None:
-    return crud.create_participant(participant, db)
-
-@app.get("/api/participant", tags=["Participant"])
-async def get_participant(
-    id: int,
-    db: Session = Depends(get_db),
-) -> schema.Participant:
-    res = crud.get_participant(id, db)
-    if res == None:
-        raise HTTPException(404, detail="Participant not found")
-    return res
-
-@app.delete("/api/participant", tags=["Participant"])
-async def delete_participant(
-    id: Annotated[int, "ID of participant"],
-    db: Session = Depends(get_db),
-):
-    crud.delete_participant(id, db)
+# Include the routers
+app.include_router(auth.router, prefix="/api")
+app.include_router(session.router, prefix="/api")
+app.include_router(participant.router, prefix="/api")
+app.include_router(course.router, prefix="/api")
+app.include_router(curve.router, prefix="/api")
+app.include_router(keymoment.router, prefix="/api")
 
 

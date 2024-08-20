@@ -1,7 +1,7 @@
 from typing import Annotated
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
-import schema, models
+import schemas, models
 from sqlalchemy.orm import Session
 from database import get_db
 from datetime import datetime, timedelta, timezone
@@ -14,21 +14,21 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/token")
 
 def verify_password(plain_password, hashed_password, salt):
-    return pwd_context.verify(salt+plain_password, hashed_password)
+    return pwd_context.verify(salt + plain_password, hashed_password)
 
 def get_password_hash(password: str, salt: str):
-    return pwd_context.hash(salt+password)
+    return pwd_context.hash(salt + password)
 
-def get_db_user(userName: str, db: Session = Depends(get_db)):
-    userModel = db.query(models.User).filter(models.User.user_name == userName).first()
+def get_db_user_by_email(email: str, db: Session = Depends(get_db)):
+    userModel = db.query(models.User).filter(models.User.email == email).first()
     return userModel
 
-def get_user(userName: str, db: Session):
-    userModel = db.query(models.User).filter(models.User.user_name == userName).first()
-    return schema.User(user_name=userModel.user_name, email=userModel.email, password=None)
+def get_user_by_email(email: str, db: Session):
+    userModel = db.query(models.User).filter(models.User.email == email).first()
+    return schemas.User(id=userModel.id, user_name=userModel.user_name, email=userModel.email)
 
-def authenticate_user(userName: str, password: str, db: Session):
-    user = get_db_user(userName, db)
+def authenticate_user(email: str, password: str, db: Session):
+    user = get_db_user_by_email(email, db)
     if user is None:
         return False
     if not verify_password(password, user.password_hash, user.salt):
@@ -53,32 +53,31 @@ async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)], db: Se
     )
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        user_name: str = payload.get("sub")
-        if user_name is None:
+        email: str | None = payload.get("sub")
+        if email is None:
             raise credentials_exception
-        token_data = schema.TokenData(user_name=user_name)
+        token_data = schemas.TokenData(email=email)
     except JWTError:
         raise credentials_exception
-    user = get_user(token_data.user_name, db)
+    user = get_user_by_email(token_data.email, db)
     if user is None:
         raise credentials_exception
     return user
 
-def create_new_user(newUser: schema.User, db: Session):
+def create_new_user(newUser: schemas.User, db: Session):
     salt = bcrypt.gensalt().decode()
     passwordHash = get_password_hash(newUser.password, salt)
     exists = db.query(models.User).filter(
-            models.User.user_name == newUser.user_name).first()
+            models.User.email == newUser.email).first()
     if exists:
-        raise HTTPException(status.HTTP_409_CONFLICT, "User with this name allready exists in our system.")
+        raise HTTPException(status.HTTP_409_CONFLICT, "User with this email already exists in our system.")
     else:
         user_model = models.User(
-            user_name = newUser.user_name,
-            email = newUser.email,
-            password_hash = passwordHash,
-            salt = salt
+            user_name=newUser.user_name,
+            email=newUser.email,
+            password_hash=passwordHash,
+            salt=salt
         )
         db.add(user_model)
         db.commit()
     return user_model
-
