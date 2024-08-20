@@ -12,8 +12,12 @@ import Drawer from '@mui/material/Drawer';
 import MenuIcon from '@mui/icons-material/Menu';
 import ToggleColorMode from './ToggleColorMode';
 import logo from '../assets/logo.svg';
-import reactlogo from '../assets/react.svg';
 import { useNavigate } from "react-router-dom";
+import Avatar from '@mui/material/Avatar';
+import Menu from '@mui/material/Menu';
+import IconButton from '@mui/material/IconButton';
+import Tooltip from '@mui/material/Tooltip';
+import { UserContext } from '../contexts/user';
 
 const logoStyle = {
   width: '140px',
@@ -28,7 +32,10 @@ interface AppAppBarProps {
 
 function AppAppBar({ mode, toggleColorMode }: AppAppBarProps) {
   const [open, setOpen] = React.useState(false);
-  const navigate = useNavigate()
+  const { user, setUser } = React.useContext(UserContext);
+  const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
+  const navigate = useNavigate();
+
   const toggleDrawer = (newOpen: boolean) => () => {
     setOpen(newOpen);
   };
@@ -46,6 +53,27 @@ function AppAppBar({ mode, toggleColorMode }: AppAppBarProps) {
       setOpen(false);
     }
   };
+
+  const handleSignOut = () => {
+    localStorage.removeItem('token');
+    setUser({ email: null });
+    navigate('/');
+  };
+
+  const handleAvatarClick = (event: React.MouseEvent<HTMLElement>) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleClose = () => {
+    setAnchorEl(null);
+  };
+
+  const handleNavigateToInstructor = () => {
+    navigate('/instructor');
+    setAnchorEl(null);
+  };
+
+  const isLoggedIn = Boolean(user.email);
 
   return (
     <div>
@@ -90,14 +118,7 @@ function AppAppBar({ mode, toggleColorMode }: AppAppBarProps) {
                 px: 3,
               }}
             >
-              {/* <img
-                src={
-                  'https://assets-global.website-files.com/61ed56ae9da9fd7e0ef0a967/61f12e6faf73568658154dae_SitemarkDefault.svg'
-                }
-                style={logoStyle}
-                alt="logo of sitemark"
-              /> */}
-              <img src={logo} style={logoStyle} alt="Reflectometer logo" />
+              <img src={logo} style={logoStyle} alt="Reflectometer logo" onClick={() => navigate("/")} />
               <Box sx={{ display: { xs: 'none', md: 'flex' } }}>
                 <MenuItem
                   onClick={() => scrollToSection('features')}
@@ -133,27 +154,86 @@ function AppAppBar({ mode, toggleColorMode }: AppAppBarProps) {
               }}
             >
               <ToggleColorMode mode={mode} toggleColorMode={toggleColorMode} />
-              <Button
-                color="primary"
-                variant="text"
-                size="small"
-                component="a"
-                // href="/material-ui/getting-started/templates/sign-in/"
-                target="_blank"
-                onClick={() => navigate("/signin")}
-              >
-                Sign in
-              </Button>
-              <Button
-                color="primary"
-                variant="contained"
-                size="small"
-                component="a"
-                href="/material-ui/getting-started/templates/sign-up/"
-                target="_blank"
-              >
-                Sign up
-              </Button>
+              {isLoggedIn ? (
+                <>
+                  <Tooltip title="Account settings">
+                    <IconButton
+                      onClick={handleAvatarClick}
+                      size="small"
+                      sx={{ ml: 2 }}
+                      aria-controls={anchorEl ? 'account-menu' : undefined}
+                      aria-haspopup="true"
+                      aria-expanded={anchorEl ? 'true' : undefined}
+                    >
+                      <Avatar sx={{ width: 32, height: 32 }}>
+                        {user.email.charAt(0).toUpperCase()}
+                      </Avatar>
+                    </IconButton>
+                  </Tooltip>
+                  <Menu
+                    anchorEl={anchorEl}
+                    id="account-menu"
+                    open={Boolean(anchorEl)}
+                    onClose={handleClose}
+                    onClick={handleClose}
+                    PaperProps={{
+                      elevation: 0,
+                      sx: {
+                        overflow: 'visible',
+                        filter: 'drop-shadow(0px 2px 8px rgba(0,0,0,0.32))',
+                        mt: 1.5,
+                        '& .MuiAvatar-root': {
+                          width: 32,
+                          height: 32,
+                          ml: -0.5,
+                          mr: 1,
+                        },
+                        '&:before': {
+                          content: '""',
+                          display: 'block',
+                          position: 'absolute',
+                          top: 0,
+                          right: 14,
+                          width: 10,
+                          height: 10,
+                          bgcolor: 'background.paper',
+                          transform: 'translateY(-50%) rotate(45deg)',
+                          zIndex: 0,
+                        },
+                      },
+                    }}
+                    transformOrigin={{ horizontal: 'right', vertical: 'top' }}
+                    anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+                  >
+                    <MenuItem onClick={handleNavigateToInstructor}>
+                      My Profile
+                    </MenuItem>
+                    <Divider />
+                    <MenuItem onClick={handleSignOut}>
+                      Sign out
+                    </MenuItem>
+                  </Menu>
+                </>
+              ) : (
+                <>
+                  <Button
+                    color="primary"
+                    variant="text"
+                    size="small"
+                    onClick={() => navigate("/signin")}
+                  >
+                    Sign in
+                  </Button>
+                  <Button
+                    color="primary"
+                    variant="contained"
+                    size="small"
+                    onClick={() => navigate("/signup")}
+                  >
+                    Sign up
+                  </Button>
+                </>
+              )}
             </Box>
             <Box sx={{ display: { sm: '', md: 'none' } }}>
               <Button
@@ -198,30 +278,39 @@ function AppAppBar({ mode, toggleColorMode }: AppAppBarProps) {
                   </MenuItem>
                   <MenuItem onClick={() => scrollToSection('faq')}>FAQ</MenuItem>
                   <Divider />
-                  <MenuItem>
-                    <Button
-                      color="primary"
-                      variant="contained"
-                      component="a"
-                      href="/material-ui/getting-started/templates/sign-up/"
-                      target="_blank"
-                      sx={{ width: '100%' }}
-                    >
-                      Sign up
-                    </Button>
-                  </MenuItem>
-                  <MenuItem>
-                    <Button
-                      color="primary"
-                      variant="outlined"
-                      component="a"
-                      href="/material-ui/getting-started/templates/sign-in/"
-                      target="_blank"
-                      sx={{ width: '100%' }}
-                    >
-                      Sign in
-                    </Button>
-                  </MenuItem>
+                  {isLoggedIn ? (
+                    <>
+                      <MenuItem onClick={handleNavigateToInstructor}>
+                        My Profile
+                      </MenuItem>
+                      <MenuItem onClick={handleSignOut}>
+                        Sign out
+                      </MenuItem>
+                    </>
+                  ) : (
+                    <>
+                      <MenuItem>
+                        <Button
+                          color="primary"
+                          variant="contained"
+                          onClick={() => navigate("/signup")}
+                          sx={{ width: '100%' }}
+                        >
+                          Sign up
+                        </Button>
+                      </MenuItem>
+                      <MenuItem>
+                        <Button
+                          color="primary"
+                          variant="outlined"
+                          onClick={() => navigate("/signin")}
+                          sx={{ width: '100%' }}
+                        >
+                          Sign in
+                        </Button>
+                      </MenuItem>
+                    </>
+                  )}
                 </Box>
               </Drawer>
             </Box>

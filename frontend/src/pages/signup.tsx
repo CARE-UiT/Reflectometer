@@ -3,32 +3,50 @@ import Avatar from '@mui/material/Avatar';
 import Button from '@mui/material/Button';
 import CssBaseline from '@mui/material/CssBaseline';
 import TextField from '@mui/material/TextField';
-import FormControlLabel from '@mui/material/FormControlLabel';
-import Checkbox from '@mui/material/Checkbox';
 import Link from '@mui/material/Link';
 import Grid from '@mui/material/Grid';
 import Box from '@mui/material/Box';
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import Typography from '@mui/material/Typography';
-import Container from '@mui/material/Container';
-import { createTheme, ThemeProvider } from '@mui/material/styles';
 import Paper from '@mui/material/Paper';
+import { createTheme, ThemeProvider } from '@mui/material/styles';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 import { Copyright } from '../components/Copyright';
-import AppAppBar from '../components/AppAppBar';
+import { UserContext } from '../contexts/user';
 
-// TODO remove, this demo shouldn't need to reset the theme.
 const defaultTheme = createTheme();
 
 export default function SignUp() {
-    const navigate = useNavigate()
-    const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    const navigate = useNavigate();
+    const { setUser } = React.useContext(UserContext);
+
+    const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
         const data = new FormData(event.currentTarget);
-        console.log({
-            email: data.get('email'),
-            password: data.get('password'),
-        });
+
+        const firstName = data.get('firstName') as string;
+        const lastName = data.get('lastName') as string;
+        const email = data.get('email') as string;
+        const password = data.get('password') as string;
+
+        try {
+            const response = await axios.post('/api/auth/new', {
+                user_name: `${firstName} ${lastName}`,
+                email: email,
+                password: password,
+            });
+
+            if (response.status === 200) {
+                // Set user context
+                setUser({ email });
+
+                // Redirect to a protected route or the sign-in page
+                navigate('/signin');
+            }
+        } catch (error) {
+            console.error('Sign up failed:', error);
+        }
     };
 
     return (

@@ -13,20 +13,57 @@ import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import Typography from '@mui/material/Typography';
 import { createTheme, ThemeProvider } from '@mui/material/styles';
 import { useNavigate } from 'react-router-dom';
-import { Copyright } from '../components/Copyright';
+import axios from 'axios';
+import { UserContext } from '../contexts/user';
 
-// TODO remove, this demo shouldn't need to reset the theme.
 const defaultTheme = createTheme();
 
 export default function SignInSide() {
-    const navigate = useNavigate()
-    const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    const navigate = useNavigate();
+    const { setUser } = React.useContext(UserContext);
+    const [error, setError] = React.useState<string | null>(null);
+    const [rememberMe, setRememberMe] = React.useState(false);
+
+    const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
         const data = new FormData(event.currentTarget);
-        console.log({
-            email: data.get('email'),
-            password: data.get('password'),
-        });
+
+        const email = data.get('email') as string;
+        const password = data.get('password') as string;
+
+        try {
+            const response = await axios.post('/api/token', new URLSearchParams({
+                username: email,
+                password: password,
+            }), {
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+            });
+
+            if (response.status === 200) {
+                const token = response.data.access_token;
+
+                if (rememberMe) {
+                    localStorage.setItem('token', token);
+                } else {
+                    sessionStorage.setItem('token', token);
+                }
+
+                setUser({ email });
+                navigate('/instructor');
+            }
+        } catch (error: any) {
+            if (error.response && error.response.data && error.response.data.detail) {
+                setError(error.response.data.detail);
+            } else {
+                setError('Login failed. Please try again.');
+            }
+        }
+    };
+
+    const handleRememberMeChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        setRememberMe(event.target.checked);
     };
 
     return (
@@ -85,9 +122,14 @@ export default function SignInSide() {
                                 autoComplete="current-password"
                             />
                             <FormControlLabel
-                                control={<Checkbox value="remember" color="primary" />}
+                                control={<Checkbox value="remember" color="primary" onChange={handleRememberMeChange} />}
                                 label="Remember me"
                             />
+                            {error && (
+                                <Typography color="error" variant="body2" align="center">
+                                    {error}
+                                </Typography>
+                            )}
                             <Button
                                 type="submit"
                                 fullWidth
@@ -108,7 +150,6 @@ export default function SignInSide() {
                                     </Link>
                                 </Grid>
                             </Grid>
-                            <Copyright sx={{ mt: 5 }} />
                         </Box>
                     </Box>
                 </Grid>
