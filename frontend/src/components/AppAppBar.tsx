@@ -166,7 +166,7 @@ function AppAppBar({ mode, toggleColorMode }: AppAppBarProps) {
                       aria-expanded={anchorEl ? 'true' : undefined}
                     >
                       <Avatar sx={{ width: 32, height: 32 }}>
-                        {user.email.charAt(0).toUpperCase()}
+                        {user.email?.charAt(0).toUpperCase()}
                       </Avatar>
                     </IconButton>
                   </Tooltip>

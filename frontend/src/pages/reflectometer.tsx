@@ -1,7 +1,7 @@
 import { FC, useEffect, useState } from "react";
 import { DrawLineChart } from "../components/DrawLineChart";
 import { useParams } from "react-router-dom";
-import { Typography, Container, Box, Grid } from "@mui/material";
+import { Typography, Container, Grid } from "@mui/material";
 import axios from "axios";
 
 export const ReflectometerPage: FC = () => {

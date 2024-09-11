@@ -103,7 +103,7 @@ export const DrawLineChart = (params: DrawLineChartParams) => {
     const handleTouchMove = (e: TouchEvent<HTMLDivElement>) => {
         if (mode === 'draw' && isDrawing) {
             const touch = e.touches[0];
-            updateDataPoint(touch);
+            updateDataPoint(touch as Touch); // Explicitly cast touch to Touch
         }
     };
 
