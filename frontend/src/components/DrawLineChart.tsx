@@ -263,9 +263,11 @@ export const DrawLineChart = (params: DrawLineChartParams) => {
             }
 
             alert('Data submitted successfully!');
+            setData(initializeData())
+            setSelectedPoints([])
         } catch (error) {
             console.error('Submission error:', error);
-            alert('Failed to submit data');
+            alert('Failed to submit data, try again later');
         }
     };
 
@@ -413,7 +415,13 @@ export const DrawLineChart = (params: DrawLineChartParams) => {
                         onTouchStart={handleTouchStart}
                         onTouchEnd={handleTouchEnd}
                         onTouchMove={handleTouchMove}
-                        style={{ width: '100%', height: '100%', border: 'none' }}
+                        style={{
+                            width: '100%',
+                            height: '100%',
+                            border: 'none',
+                            touchAction: 'none' // Disable scrolling and gestures
+                        }}
+
                     >
                         <ReactEcharts
                             ref={chartRef}
