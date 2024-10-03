@@ -31,7 +31,7 @@ interface SelectedPoint extends DataPoint {
     details: PointDetails;
 }
 
-const POINTS_COUNT = 150;
+const POINTS_COUNT = 50;
 
 const initializeData = () => {
     const data: DataPoint[] = [];
