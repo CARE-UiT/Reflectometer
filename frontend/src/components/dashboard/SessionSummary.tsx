@@ -3,7 +3,6 @@ import { useEffect, useState, useMemo } from 'react';
 import ReactEcharts from 'echarts-for-react';
 import axios from 'axios';
 import { CircularProgress } from '@mui/material';
-import * as d3 from 'd3-array';
 
 type UUID = string;
 
@@ -28,23 +27,10 @@ interface SessionSummaryProps {
     sessionId: UUID;
 }
 
-const POINTS_COUNT = 150;
-
-const initializeXData = () => {
-    const xData: number[] = [];
-    const step = 100 / (POINTS_COUNT - 1);
-    for (let i = 0; i < POINTS_COUNT; i++) {
-        xData.push(i * step);
-    }
-    return xData;
-};
-
 export const SessionSummary: React.FC<SessionSummaryProps> = ({ sessionId }) => {
     const [curves, setCurves] = useState<Curve[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
     const token = localStorage.getItem('token') || sessionStorage.getItem('token');
-
-    const xData = useMemo(() => initializeXData(), []);
 
     useEffect(() => {
         const fetchCurvesAndKeyMoments = async () => {
@@ -85,19 +71,58 @@ export const SessionSummary: React.FC<SessionSummaryProps> = ({ sessionId }) => 
     const calculateAverageAndStdDev = (curves: Curve[]) => {
         if (!curves.length) return { avgCurve: [], upperBound: [], lowerBound: [] };
 
-        const yValuesByXIndex: number[][] = Array(POINTS_COUNT).fill(null).map(() => []);
+        // Find the maximum number of points across all curves
+        const maxPoints = Math.max(...curves.map(curve => curve.data.length));
 
-        // Collect y-values by x-index across all curves
+        // Initialize arrays to store values at each normalized position
+        const normalizedValues: number[][] = Array(maxPoints).fill(null).map(() => []);
+
+        // For each curve, interpolate values at normalized positions
         curves.forEach(curve => {
-            curve.data.forEach((y, idx) => {
-                yValuesByXIndex[idx].push(y);
-            });
+            const curveLength = curve.data.length;
+            for (let i = 0; i < maxPoints; i++) {
+                // Calculate the normalized position (0 to 1)
+                const normalizedPos = i / (maxPoints - 1);
+                // Map to actual position in current curve
+                const actualPos = normalizedPos * (curveLength - 1);
+                // Find surrounding points
+                const lowerIndex = Math.floor(actualPos);
+                const upperIndex = Math.ceil(actualPos);
+
+                // Linear interpolation
+                if (lowerIndex === upperIndex) {
+                    normalizedValues[i].push(curve.data[lowerIndex]);
+                } else {
+                    const fraction = actualPos - lowerIndex;
+                    const interpolatedValue =
+                        curve.data[lowerIndex] * (1 - fraction) +
+                        curve.data[upperIndex] * fraction;
+                    normalizedValues[i].push(interpolatedValue);
+                }
+            }
         });
 
-        // Calculate average and standard deviation for each x-index
-        const avgCurve = yValuesByXIndex.map(values => d3.mean(values) || 0);
-        const upperBound = yValuesByXIndex.map((values, idx) => avgCurve[idx] + (d3.deviation(values) || 0));
-        const lowerBound = yValuesByXIndex.map((values, idx) => avgCurve[idx] - (d3.deviation(values) || 0));
+        // Calculate statistics using simple mean and standard deviation
+        const avgCurve = normalizedValues.map(values => {
+            const sum = values.reduce((acc, val) => acc + val, 0);
+            return sum / values.length;
+        });
+
+        const upperBound = normalizedValues.map((values, idx) => {
+            const mean = avgCurve[idx];
+            const squaredDiffs = values.map(val => Math.pow(val - mean, 2));
+            const variance = squaredDiffs.reduce((acc, val) => acc + val, 0) / values.length;
+            const stdDev = Math.sqrt(variance);
+            return mean + stdDev;
+        });
+
+        const lowerBound = normalizedValues.map((values, idx) => {
+            const mean = avgCurve[idx];
+            const squaredDiffs = values.map(val => Math.pow(val - mean, 2));
+            const variance = squaredDiffs.reduce((acc, val) => acc + val, 0) / values.length;
+            const stdDev = Math.sqrt(variance);
+            return mean - stdDev;
+        });
 
         return { avgCurve, upperBound, lowerBound };
     };
@@ -113,6 +138,10 @@ export const SessionSummary: React.FC<SessionSummaryProps> = ({ sessionId }) => 
                     'Standard Deviation Area',
                 ],
                 selectedMode: 'multiple',
+                selected: {
+                    'Average': false,
+                    'Standard Deviation Area': false,
+                }
             },
             xAxis: {
                 type: 'value',
@@ -148,7 +177,7 @@ export const SessionSummary: React.FC<SessionSummaryProps> = ({ sessionId }) => 
                 {
                     name: 'Average',
                     type: 'line',
-                    data: avgCurve.map((yValue, idx) => [xData[idx], yValue]),
+                    data: avgCurve.map((yValue, idx) => [idx * (100 / (avgCurve.length - 1)), yValue]),
                     smooth: true,
                     showSymbol: false,
                     lineStyle: {
@@ -161,8 +190,8 @@ export const SessionSummary: React.FC<SessionSummaryProps> = ({ sessionId }) => 
                 {
                     name: 'Standard Deviation Area',
                     type: 'line',
-                    data: upperBound.map((yValue, idx) => [xData[idx], yValue]).concat(
-                        lowerBound.map((yValue, idx) => [xData[POINTS_COUNT - idx - 1], yValue])
+                    data: upperBound.map((yValue, idx) => [idx * (100 / (upperBound.length - 1)), yValue]).concat(
+                        lowerBound.map((yValue, idx) => [(100 / (lowerBound.length - 1)) * (lowerBound.length - idx - 1), yValue])
                     ),
                     smooth: true,
                     lineStyle: { opacity: 0 }, // Hide the line
@@ -175,7 +204,7 @@ export const SessionSummary: React.FC<SessionSummaryProps> = ({ sessionId }) => 
                 ...curves.map((curve, index) => ({
                     name: `Response ${index + 1}`,
                     type: 'line',
-                    data: curve.data.map((yValue, idx) => [xData[idx], yValue]),
+                    data: curve.data.map((yValue, idx) => [idx * (100 / (curve.data.length - 1)), yValue]),
                     smooth: true,
                     showSymbol: false,
                     lineStyle: {
@@ -255,7 +284,7 @@ export const SessionSummary: React.FC<SessionSummaryProps> = ({ sessionId }) => 
                 },
             },
         };
-    }, [curves, avgCurve, upperBound, lowerBound, xData]);
+    }, [curves]);
 
     return (
         <>
